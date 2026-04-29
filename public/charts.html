@@ -6,37 +6,42 @@
 <title>차트</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #ffffff; --bg2: #f7f7f5;
-    --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0;
-    --border: rgba(0,0,0,0.08);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; --border: rgba(255,255,255,0.08); }
-  }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
-  .title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
-  .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-  .legend span { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
-  .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-  .updated { font-size: 11px; color: var(--text3); text-align: right; margin-bottom: 10px; cursor: pointer; }
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; --border: rgba(0,0,0,0.08); }
+ @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; --border: rgba(255,255,255,0.08); } }
+ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
+ .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+ .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
+ .title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
+ .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+ .legend span { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
+ .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+ .statusbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+ .statusbar-left { display: flex; align-items: center; gap: 8px; }
+ .statusbar-time { font-size: 11px; color: var(--text3); }
+ .statusbar-auto { font-size: 10px; color: var(--text3); }
+ .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
+ @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); } }
 </style>
 </head>
 <body>
-<div class="updated" id="updated" onclick="load()">— 클릭해서 새로고침</div>
+<div class="statusbar">
+ <div class="statusbar-left">
+  <span class="statusbar-time" id="updated">—</span>
+  <span class="statusbar-auto">· 5분마다 자동 갱신</span>
+ </div>
+ <button class="btn-refresh" onclick="load()">지금 갱신</button>
+</div>
 <div class="grid">
-  <div class="card">
-    <div class="title">카테고리별 분포</div>
-    <div style="position:relative;height:180px;"><canvas id="catChart" role="img" aria-label="카테고리별 아이디어 수"></canvas></div>
-  </div>
-  <div class="card">
-    <div class="title">우선순위 분포</div>
-    <div style="position:relative;height:180px;"><canvas id="prioChart" role="img" aria-label="우선순위별 아이디어 수"></canvas></div>
-    <div class="legend" id="prioLegend"></div>
-  </div>
+ <div class="card">
+  <div class="title">카테고리별 분포</div>
+  <div style="position:relative;height:180px;"><canvas id="catChart" role="img" aria-label="카테고리별 아이디어 수"></canvas></div>
+ </div>
+ <div class="card">
+  <div class="title">우선순위 분포</div>
+  <div style="position:relative;height:180px;"><canvas id="prioChart" role="img" aria-label="우선순위별 아이디어 수"></canvas></div>
+  <div class="legend" id="prioLegend"></div>
+ </div>
 </div>
 <script>
 const CATS = ["마케팅/그로스","운영/프로세스","제품/서비스","고객/시장","수익모델","기술/도구","기타 인사이트"];
@@ -44,39 +49,36 @@ const CAT_SHORT = {"마케팅/그로스":"마케팅","운영/프로세스":"운�
 const CAT_COLORS = ['#378add','#1d9e75','#e24b4a','#ef9f27','#a78bfa','#f472b6','#94a3b8'];
 const PRIO_COLORS = ['#e24b4a','#ef9f27','#378add'];
 let catInst = null, prioInst = null;
-
 async function load() {
-  try {
-    const res = await fetch('/.netlify/functions/notion-data');
-    const { ideas, updatedAt } = await res.json();
-    document.getElementById('updated').textContent = '업데이트: ' + new Date(updatedAt).toLocaleString('ko-KR') + ' · 클릭해서 새로고침';
-
-    const catCounts = CATS.map(c => ideas.filter(i => i.category.includes(c.split('/')[0])).length);
-    if (catInst) catInst.destroy();
-    catInst = new Chart(document.getElementById('catChart'), {
-      type: 'bar',
-      data: { labels: CATS.map(c => CAT_SHORT[c]), datasets: [{ data: catCounts, backgroundColor: CAT_COLORS, borderRadius: 4, borderSkipped: false }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 }, color: '#888' }, grid: { color: 'rgba(128,128,128,0.1)' } }, x: { ticks: { font: { size: 10 }, color: '#888', maxRotation: 30 }, grid: { display: false } } } }
-    });
-
-    const prioLabels = ['높음','보통','낮음'];
-    const prioCounts = prioLabels.map(p => ideas.filter(i => i.priority.includes(p)).length);
-    if (prioInst) prioInst.destroy();
-    prioInst = new Chart(document.getElementById('prioChart'), {
-      type: 'doughnut',
-      data: { labels: prioLabels, datasets: [{ data: prioCounts, backgroundColor: PRIO_COLORS, borderWidth: 0, hoverOffset: 6 }] },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}개` } } } }
-    });
-
-    document.getElementById('prioLegend').innerHTML = prioLabels.map((l,i) =>
-      `<span><span class="dot" style="background:${PRIO_COLORS[i]}"></span>${l} ${prioCounts[i]}개</span>`
-    ).join('');
-  } catch(e) {
-    document.getElementById('updated').textContent = '오류: ' + e.message;
-  }
+ try {
+  const res = await fetch('/.netlify/functions/notion-data');
+  const { ideas, updatedAt } = await res.json();
+  const t = new Date(updatedAt);
+  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
+  const catCounts = CATS.map(c => ideas.filter(i => i.category.includes(c.split('/')[0])).length);
+  if (catInst) catInst.destroy();
+  catInst = new Chart(document.getElementById('catChart'), {
+   type: 'bar',
+   data: { labels: CATS.map(c => CAT_SHORT[c]), datasets: [{ data: catCounts, backgroundColor: CAT_COLORS, borderRadius: 4, borderSkipped: false }] },
+   options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 }, color: '#888' }, grid: { color: 'rgba(128,128,128,0.1)' } }, x: { ticks: { font: { size: 10 }, color: '#888', maxRotation: 30 }, grid: { display: false } } } }
+  });
+  const prioLabels = ['높음','보통','낮음'];
+  const prioCounts = prioLabels.map(p => ideas.filter(i => i.priority.includes(p)).length);
+  if (prioInst) prioInst.destroy();
+  prioInst = new Chart(document.getElementById('prioChart'), {
+   type: 'doughnut',
+   data: { labels: prioLabels, datasets: [{ data: prioCounts, backgroundColor: PRIO_COLORS, borderWidth: 0, hoverOffset: 6 }] },
+   options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}개` } } } }
+  });
+  document.getElementById('prioLegend').innerHTML = prioLabels.map((l,i) =>
+   `<span><span class="dot" style="background:${PRIO_COLORS[i]}"></span>${l} ${prioCounts[i]}개</span>`
+  ).join('');
+ } catch(e) {
+  document.getElementById('updated').textContent = '오류: ' + e.message;
+ }
 }
 load();
+setInterval(load, 5 * 60 * 1000);
 </script>
 </body>
 </html>
