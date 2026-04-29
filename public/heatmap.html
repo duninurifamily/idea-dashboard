@@ -21,7 +21,7 @@
  .legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--text3); }
  .legend-bar { display: flex; gap: 2px; }
  .legend-bar span { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
- .statusbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+ .statusbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
  .statusbar-left { display: flex; align-items: center; gap: 8px; }
  .statusbar-time { font-size: 11px; color: var(--text3); }
  .statusbar-auto { font-size: 10px; color: var(--text3); }
@@ -34,8 +34,8 @@
  <div class="statusbar-left">
   <span class="statusbar-time" id="updated">—</span>
   <span class="statusbar-auto">· 5분마다 자동 갱신</span>
+  <button class="btn-refresh" onclick="load()">지금 갱신</button>
  </div>
- <button class="btn-refresh" onclick="load()">지금 갱신</button>
 </div>
 <div class="card">
  <div class="title">카테고리 × 성숙도 히트맵</div>
