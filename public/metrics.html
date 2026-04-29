@@ -9,25 +9,22 @@
  :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; }
  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; } }
  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
+ .statusbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+ .statusbar-time { font-size: 11px; color: var(--text3); }
+ .statusbar-auto { font-size: 10px; color: var(--text3); }
+ .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg2); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
+ @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); background: var(--bg2); } }
  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
  .label { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
  .value { font-size: 32px; font-weight: 600; color: var(--text); }
  .sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
- .statusbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
- .statusbar-left { display: flex; align-items: center; gap: 8px; }
- .statusbar-time { font-size: 11px; color: var(--text3); }
- .statusbar-auto { font-size: 10px; color: var(--text3); }
- .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
- @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); } }
 </style>
 </head>
 <body>
 <div class="statusbar">
- <div class="statusbar-left">
-  <span class="statusbar-time" id="updated">—</span>
-  <span class="statusbar-auto">· 5분마다 자동 갱신</span>
- </div>
+ <span class="statusbar-time" id="updated">—</span>
+ <span class="statusbar-auto">· 5분마다 자동 갱신</span>
  <button class="btn-refresh" onclick="load()">지금 갱신</button>
 </div>
 <div class="grid">
