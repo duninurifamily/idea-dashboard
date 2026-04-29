@@ -5,66 +5,75 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>아이디어 목록</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; --border: rgba(0,0,0,0.07); }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; --border: rgba(255,255,255,0.07); } }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
-  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
-  .title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
-  .row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
-  .row:last-child { border-bottom: none; }
-  .name { flex: 1; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-  .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
-  .cat { font-size: 11px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
-  .empty { text-align: center; color: var(--text3); font-size: 13px; padding: 30px 0; }
-  .updated { font-size: 11px; color: var(--text3); text-align: right; margin-bottom: 10px; cursor: pointer; }
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; --border: rgba(0,0,0,0.07); }
+ @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; --border: rgba(255,255,255,0.07); } }
+ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
+ .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
+ .title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+ .row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+ .row:last-child { border-bottom: none; }
+ .name { flex: 1; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+ .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+ .cat { font-size: 11px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
+ .empty { text-align: center; color: var(--text3); font-size: 13px; padding: 30px 0; }
+ .statusbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+ .statusbar-left { display: flex; align-items: center; gap: 8px; }
+ .statusbar-time { font-size: 11px; color: var(--text3); }
+ .statusbar-auto { font-size: 10px; color: var(--text3); }
+ .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
+ @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); } }
 </style>
 </head>
 <body>
-<div class="updated" id="updated" onclick="load()">— 클릭해서 새로고침</div>
+<div class="statusbar">
+ <div class="statusbar-left">
+  <span class="statusbar-time" id="updated">—</span>
+  <span class="statusbar-auto">· 5분마다 자동 갱신</span>
+ </div>
+ <button class="btn-refresh" onclick="load()">지금 갱신</button>
+</div>
 <div class="card">
-  <div class="title">전체 목록</div>
-  <div id="list"></div>
+ <div class="title">전체 목록</div>
+ <div id="list"></div>
 </div>
 <script>
 const PRIO_COLOR = { '높음': '#e24b4a', '보통': '#ef9f27', '낮음': '#378add' };
 const MAT_EMOJI = { '씨앗': '🌱', '싹': '🌿', '나무': '🌳' };
-
 async function load() {
-  try {
-    const res = await fetch('/.netlify/functions/notion-data');
-    const { ideas, updatedAt } = await res.json();
-    document.getElementById('updated').textContent = '업데이트: ' + new Date(updatedAt).toLocaleString('ko-KR') + ' · 클릭해서 새로고침';
-
-    if (ideas.length === 0) {
-      document.getElementById('list').innerHTML = '<div class="empty">아이디어를 추가해보세요</div>';
-      return;
-    }
-
-    const order = { '높음': 0, '보통': 1, '낮음': 2 };
-    const sorted = [...ideas].sort((a,b) => {
-      const ap = order[Object.keys(order).find(k => a.priority.includes(k))] ?? 3;
-      const bp = order[Object.keys(order).find(k => b.priority.includes(k))] ?? 3;
-      return ap - bp;
-    });
-
-    document.getElementById('list').innerHTML = sorted.map(idea => {
-      const prioKey = ['높음','보통','낮음'].find(k => idea.priority.includes(k)) || '';
-      const matKey = ['씨앗','싹','나무'].find(k => idea.maturity.includes(k)) || '';
-      const color = PRIO_COLOR[prioKey] || '#aaa';
-      const catShort = idea.category.split('/')[0];
-      return `<div class="row">
-        <span class="name" title="${idea.name}">${idea.name}</span>
-        <span class="cat">${catShort}</span>
-        ${prioKey ? `<span class="badge" style="background:${color}18;color:${color};">${prioKey}</span>` : ''}
-        ${matKey ? `<span class="badge" style="background:rgba(128,128,128,0.08);color:#888;">${MAT_EMOJI[matKey]} ${matKey}</span>` : ''}
-      </div>`;
-    }).join('');
-  } catch(e) {
-    document.getElementById('updated').textContent = '오류: ' + e.message;
+ try {
+  const res = await fetch('/.netlify/functions/notion-data');
+  const { ideas, updatedAt } = await res.json();
+  const t = new Date(updatedAt);
+  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
+  if (ideas.length === 0) {
+   document.getElementById('list').innerHTML = '<div class="empty">아이디어를 추가해보세요</div>';
+   return;
   }
+  const order = { '높음': 0, '보통': 1, '낮음': 2 };
+  const sorted = [...ideas].sort((a,b) => {
+   const ap = order[Object.keys(order).find(k => a.priority.includes(k))] ?? 3;
+   const bp = order[Object.keys(order).find(k => b.priority.includes(k))] ?? 3;
+   return ap - bp;
+  });
+  document.getElementById('list').innerHTML = sorted.map(idea => {
+   const prioKey = ['높음','보통','낮음'].find(k => idea.priority.includes(k)) || '';
+   const matKey = ['씨앗','싹','나무'].find(k => idea.maturity.includes(k)) || '';
+   const color = PRIO_COLOR[prioKey] || '#aaa';
+   const catShort = idea.category.split('/')[0];
+   return `<div class="row">
+    <span class="name" title="${idea.name}">${idea.name}</span>
+    <span class="cat">${catShort}</span>
+    ${prioKey ? `<span class="badge" style="background:${color}18;color:${color};">${prioKey}</span>` : ''}
+    ${matKey ? `<span class="badge" style="background:rgba(128,128,128,0.08);color:#888;">${MAT_EMOJI[matKey]} ${matKey}</span>` : ''}
+   </div>`;
+  }).join('');
+ } catch(e) {
+  document.getElementById('updated').textContent = '오류: ' + e.message;
+ }
 }
 load();
+setInterval(load, 5 * 60 * 1000);
 </script>
 </body>
 </html>
