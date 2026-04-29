@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>현황 카드</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f7f7f5;
+    --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
+  .label { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+  .value { font-size: 32px; font-weight: 600; color: var(--text); }
+  .sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .updated { font-size: 11px; color: var(--text3); text-align: right; margin-bottom: 10px; cursor: pointer; }
+  .updated:hover { color: var(--text2); }
+</style>
+</head>
+<body>
+<div class="updated" id="updated" onclick="load()">— 클릭해서 새로고침</div>
+<div class="grid">
+  <div class="card"><div class="label">전체 아이디어</div><div class="value" id="total">—</div><div class="sub">등록된 아이디어</div></div>
+  <div class="card"><div class="label">🌱 씨앗</div><div class="value" id="seed">—</div><div class="sub">발굴 단계</div></div>
+  <div class="card"><div class="label">🌿 싹</div><div class="value" id="sprout">—</div><div class="sub">구체화 중</div></div>
+  <div class="card"><div class="label">🌳 나무</div><div class="value" id="tree">—</div><div class="sub">사업화 검토</div></div>
+</div>
+<script>
+async function load() {
+  try {
+    const res = await fetch('/.netlify/functions/notion-data');
+    const { ideas, updatedAt } = await res.json();
+    document.getElementById('total').textContent = ideas.length;
+    document.getElementById('seed').textContent = ideas.filter(i => i.maturity.includes('씨앗')).length;
+    document.getElementById('sprout').textContent = ideas.filter(i => i.maturity.includes('싹')).length;
+    document.getElementById('tree').textContent = ideas.filter(i => i.maturity.includes('나무')).length;
+    document.getElementById('updated').textContent = '업데이트: ' + new Date(updatedAt).toLocaleString('ko-KR') + ' · 클릭해서 새로고침';
+  } catch(e) {
+    document.getElementById('updated').textContent = '오류: ' + e.message;
+  }
+}
+load();
+</script>
+</body>
+</html>
