@@ -7,257 +7,93 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --bg: #ffffff;
-    --bg2: #f7f7f5;
-    --bg3: #f0f0ec;
-    --text: #1a1a1a;
-    --text2: #6b6b6b;
-    --text3: #a0a0a0;
-    --border: rgba(0,0,0,0.08);
-    --border2: rgba(0,0,0,0.14);
-    --green: #1d9e75;
-    --green-light: #e1f5ee;
-    --red: #e24b4a;
-    --amber: #ef9f27;
-    --blue: #378add;
-    --radius: 10px;
-    --radius-lg: 14px;
+    --bg: #ffffff; --bg2: #f7f7f5; --bg3: #f0f0ec;
+    --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.14);
+    --green: #1d9e75; --green-light: #e1f5ee;
+    --red: #e24b4a; --amber: #ef9f27; --blue: #378add;
+    --radius: 10px; --radius-lg: 14px;
   }
-
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1a1a1a;
-      --bg2: #242424;
-      --bg3: #2e2e2e;
-      --text: #f0f0f0;
-      --text2: #a0a0a0;
-      --text3: #666;
-      --border: rgba(255,255,255,0.08);
-      --border2: rgba(255,255,255,0.14);
+      --bg: #1a1a1a; --bg2: #242424; --bg3: #2e2e2e;
+      --text: #f0f0f0; --text2: #a0a0a0; --text3: #666;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
       --green-light: #0a2e22;
     }
   }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding: 20px; font-size: 14px; line-height: 1.5; }
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 20px;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .header-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .header-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 3px;
-  }
-  .updated {
-    font-size: 11px;
-    color: var(--text3);
-  }
-  .updated-auto {
-    font-size: 10px;
-    color: var(--text3);
-  }
-  .refresh-btn {
-    font-size: 11px;
-    color: var(--text2);
-    background: var(--bg2);
-    border: 0.5px solid var(--border2);
-    border-radius: 20px;
-    padding: 3px 10px;
-    cursor: pointer;
-  }
+  .header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .header-title { font-size: 16px; font-weight: 600; color: var(--text); margin-right: 4px; }
+  .updated { font-size: 11px; color: var(--text3); }
+  .updated-auto { font-size: 10px; color: var(--text3); }
+  .refresh-btn { font-size: 11px; color: var(--text2); background: var(--bg2); border: 0.5px solid var(--border2); border-radius: 20px; padding: 3px 10px; cursor: pointer; }
   .refresh-btn:hover { background: var(--bg3); }
 
-  .metric-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .metric {
-    background: var(--bg2);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-  }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .metric { background: var(--bg2); border-radius: var(--radius); padding: 14px 16px; }
   .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
   .metric-value { font-size: 28px; font-weight: 600; color: var(--text); }
   .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
 
-  .charts-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .card {
-    background: var(--bg);
-    border: 0.5px solid var(--border2);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-  }
-  .card-title {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text2);
-    margin-bottom: 14px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .card { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 16px; }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.04em; }
 
-  .heatmap-card {
-    background: var(--bg);
-    border: 0.5px solid var(--border2);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-    margin-bottom: 16px;
-  }
+  .heatmap-card { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px; }
   .heatmap-desc { font-size: 11px; color: var(--text3); margin: -8px 0 14px; }
 
   .hm-table { width: 100%; border-collapse: separate; border-spacing: 4px; }
-  .hm-table th {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text2);
-    text-align: center;
-    padding: 4px 6px;
-    white-space: nowrap;
-  }
+  .hm-table th { font-size: 11px; font-weight: 500; color: var(--text2); text-align: center; padding: 4px 6px; white-space: nowrap; }
   .hm-table th.row-header { text-align: left; max-width: 100px; }
-  .hm-table td {
-    border-radius: 6px;
-    height: 44px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    transition: transform 0.1s;
-    cursor: default;
-    position: relative;
-  }
+  .hm-table td { border-radius: 6px; height: 44px; text-align: center; font-size: 13px; font-weight: 600; transition: transform 0.1s; cursor: default; position: relative; }
   .hm-table td:hover { transform: scale(1.06); z-index: 1; }
-  .hm-table td.row-label {
-    font-size: 11px;
-    font-weight: 400;
-    color: var(--text2);
-    text-align: left;
-    padding: 0 8px 0 0;
-    background: transparent !important;
-    height: auto;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 90px;
-  }
+  .hm-table td.row-label { font-size: 11px; font-weight: 400; color: var(--text2); text-align: left; padding: 0 8px 0 0; background: transparent !important; height: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
 
-  .legend-scale {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    font-size: 11px;
-    color: var(--text3);
-  }
+  .legend-scale { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--text3); }
   .legend-bar { display: flex; gap: 2px; }
   .legend-bar span { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
 
-  .list-card {
-    background: var(--bg);
-    border: 0.5px solid var(--border2);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-  }
-  .idea-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 0;
-    border-bottom: 0.5px solid var(--border);
-  }
+  .list-card { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 16px; }
+  .idea-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
   .idea-row:last-child { border-bottom: none; }
   .idea-name { flex: 1; font-size: 13px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
 
   .empty { text-align: center; color: var(--text3); font-size: 13px; padding: 40px 0; }
   .loading { text-align: center; color: var(--text3); font-size: 13px; padding: 60px 0; }
-  .error-msg {
-    background: #fff0f0;
-    border: 0.5px solid #fcc;
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    color: #c00;
-    font-size: 13px;
-    margin-bottom: 16px;
-  }
+  .error-msg { background: #fff0f0; border: 0.5px solid #fcc; border-radius: var(--radius); padding: 14px 16px; color: #c00; font-size: 13px; margin-bottom: 16px; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <div class="header-title">아이디어 금고 대시보드</div>
-    <div class="header-meta">
-      <span class="updated" id="updated">불러오는 중...</span>
-      <span class="updated-auto" id="updated-auto"></span>
-    </div>
-  </div>
+  <div class="header-title">아이디어 금고 대시보드</div>
+  <span class="updated" id="updated">불러오는 중...</span>
+  <span class="updated-auto" id="updated-auto"></span>
   <button class="refresh-btn" onclick="load()">지금 갱신</button>
 </div>
 
 <div id="error-area"></div>
 
 <div id="main" style="display:none;">
-
   <div class="metric-grid">
-    <div class="metric">
-      <div class="metric-label">전체 아이디어</div>
-      <div class="metric-value" id="m-total">0</div>
-      <div class="metric-sub">등록된 아이디어</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">🌱 씨앗</div>
-      <div class="metric-value" id="m-seed">0</div>
-      <div class="metric-sub">발굴 단계</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">🌿 싹</div>
-      <div class="metric-value" id="m-sprout">0</div>
-      <div class="metric-sub">구체화 중</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">🌳 나무</div>
-      <div class="metric-value" id="m-tree">0</div>
-      <div class="metric-sub">사업화 검토</div>
-    </div>
+    <div class="metric"><div class="metric-label">전체 아이디어</div><div class="metric-value" id="m-total">0</div><div class="metric-sub">등록된 아이디어</div></div>
+    <div class="metric"><div class="metric-label">🌱 씨앗</div><div class="metric-value" id="m-seed">0</div><div class="metric-sub">발굴 단계</div></div>
+    <div class="metric"><div class="metric-label">🌿 싹</div><div class="metric-value" id="m-sprout">0</div><div class="metric-sub">구체화 중</div></div>
+    <div class="metric"><div class="metric-label">🌳 나무</div><div class="metric-value" id="m-tree">0</div><div class="metric-sub">사업화 검토</div></div>
   </div>
 
   <div class="charts-grid">
     <div class="card">
       <div class="card-title">카테고리별 분포</div>
-      <div style="position:relative;height:180px;">
-        <canvas id="catChart" role="img" aria-label="카테고리별 아이디어 수"></canvas>
-      </div>
+      <div style="position:relative;height:180px;"><canvas id="catChart" role="img" aria-label="카테고리별 아이디어 수"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">우선순위 분포</div>
-      <div style="position:relative;height:180px;">
-        <canvas id="prioChart" role="img" aria-label="우선순위별 아이디어 수"></canvas>
-      </div>
+      <div style="position:relative;height:180px;"><canvas id="prioChart" role="img" aria-label="우선순위별 아이디어 수"></canvas></div>
       <div id="prio-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;"></div>
     </div>
   </div>
@@ -272,7 +108,6 @@
     <div class="card-title" style="margin-bottom:8px;">전체 목록</div>
     <div id="idea-list"></div>
   </div>
-
 </div>
 
 <div class="loading" id="loading">데이터 불러오는 중...</div>
@@ -283,37 +118,25 @@ const MATS = ["씨앗","싹","나무"];
 const MAT_EMOJI = { "씨앗":"🌱","싹":"🌿","나무":"🌳" };
 const PRIO_COLOR = { "높음": "#e24b4a", "보통": "#ef9f27", "낮음": "#378add", "미설정": "#aaa" };
 const CAT_SHORT = { "마케팅/그로스":"마케팅","운영/프로세스":"운영","제품/서비스":"제품","고객/시장":"고객","수익모델":"수익","기술/도구":"기술","기타 인사이트":"기타" };
-
-let catChartInst = null;
-let prioChartInst = null;
+let catChartInst = null, prioChartInst = null;
 
 async function load() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('main').style.display = 'none';
   document.getElementById('error-area').innerHTML = '';
-
   try {
     const res = await fetch('/.netlify/functions/notion-data');
     if (!res.ok) throw new Error(`API 오류 ${res.status}`);
     const { ideas, updatedAt } = await res.json();
-
     const t = new Date(updatedAt);
-    document.getElementById('updated').textContent =
-      t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
+    document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
     document.getElementById('updated-auto').textContent = '· 5분마다 자동 갱신';
-
-    renderMetrics(ideas);
-    renderCatChart(ideas);
-    renderPrioChart(ideas);
-    renderHeatmap(ideas);
-    renderList(ideas);
-
+    renderMetrics(ideas); renderCatChart(ideas); renderPrioChart(ideas); renderHeatmap(ideas); renderList(ideas);
     document.getElementById('loading').style.display = 'none';
     document.getElementById('main').style.display = 'block';
-  } catch (e) {
+  } catch(e) {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('error-area').innerHTML =
-      `<div class="error-msg">데이터를 불러오지 못했어요: ${e.message}</div>`;
+    document.getElementById('error-area').innerHTML = `<div class="error-msg">데이터를 불러오지 못했어요: ${e.message}</div>`;
   }
 }
 
@@ -326,21 +149,12 @@ function renderMetrics(ideas) {
 
 function renderCatChart(ideas) {
   const counts = CATS.map(c => ideas.filter(i => i.category.includes(c.split('/')[0])).length);
-  const labels = CATS.map(c => CAT_SHORT[c] || c);
   const colors = ['#378add','#1d9e75','#e24b4a','#ef9f27','#a78bfa','#f472b6','#94a3b8'];
-
   if (catChartInst) catChartInst.destroy();
   catChartInst = new Chart(document.getElementById('catChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 }, color: '#888' }, grid: { color: 'rgba(128,128,128,0.1)' } },
-        x: { ticks: { font: { size: 10 }, color: '#888', maxRotation: 30 }, grid: { display: false } }
-      }
-    }
+    data: { labels: CATS.map(c => CAT_SHORT[c] || c), datasets: [{ data: counts, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 }, color: '#888' }, grid: { color: 'rgba(128,128,128,0.1)' } }, x: { ticks: { font: { size: 10 }, color: '#888', maxRotation: 30 }, grid: { display: false } } } }
   });
 }
 
@@ -348,45 +162,24 @@ function renderPrioChart(ideas) {
   const labels = ['높음','보통','낮음'];
   const counts = labels.map(p => ideas.filter(i => i.priority.includes(p)).length);
   const colors = ['#e24b4a','#ef9f27','#378add'];
-
   if (prioChartInst) prioChartInst.destroy();
   prioChartInst = new Chart(document.getElementById('prioChart'), {
     type: 'doughnut',
     data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}개` } }
-      },
-      cutout: '60%'
-    }
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}개` } } } }
   });
-
-  const legend = document.getElementById('prio-legend');
-  legend.innerHTML = labels.map((l, i) =>
-    `<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#888;">
-      <span style="width:8px;height:8px;border-radius:2px;background:${colors[i]};flex-shrink:0;"></span>
-      ${l} ${counts[i]}개
-    </span>`
+  document.getElementById('prio-legend').innerHTML = labels.map((l,i) =>
+    `<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#888;"><span style="width:8px;height:8px;border-radius:2px;background:${colors[i]};flex-shrink:0;"></span>${l} ${counts[i]}개</span>`
   ).join('');
 }
 
 function renderHeatmap(ideas) {
   const activeCats = CATS.filter(c => ideas.some(i => i.category.includes(c.split('/')[0])));
-  if (activeCats.length === 0) {
-    document.getElementById('heatmap-wrap').innerHTML = '<div class="empty">아이디어를 추가하면 히트맵이 나타나요</div>';
-    return;
-  }
-
-  const maxVal = Math.max(...activeCats.flatMap(c =>
-    MATS.map(m => ideas.filter(i => i.category.includes(c.split('/')[0]) && i.maturity.includes(m)).length)
-  ), 1);
-
+  if (activeCats.length === 0) { document.getElementById('heatmap-wrap').innerHTML = '<div class="empty">아이디어를 추가하면 히트맵이 나타나요</div>'; return; }
+  const maxVal = Math.max(...activeCats.flatMap(c => MATS.map(m => ideas.filter(i => i.category.includes(c.split('/')[0]) && i.maturity.includes(m)).length)), 1);
   let html = '<table class="hm-table"><thead><tr><th class="row-header"></th>';
   MATS.forEach(m => { html += `<th>${MAT_EMOJI[m]} ${m}</th>`; });
   html += '</tr></thead><tbody>';
-
   activeCats.forEach(cat => {
     const shortName = cat.length > 7 ? cat.slice(0,7)+'…' : cat;
     html += `<tr><td class="row-label" title="${cat}">${shortName}</td>`;
@@ -399,43 +192,23 @@ function renderHeatmap(ideas) {
     });
     html += '</tr>';
   });
-
-  html += '</tbody></table>';
-  html += `<div class="legend-scale">
-    <span>적음</span>
-    <div class="legend-bar">
-      ${[0.1,0.3,0.5,0.7,0.9].map(a => `<span style="background:rgba(29,158,117,${a});"></span>`).join('')}
-    </div>
-    <span>많음</span>
-  </div>`;
-
+  html += `</tbody></table><div class="legend-scale"><span>적음</span><div class="legend-bar">${[0.1,0.3,0.5,0.7,0.9].map(a => `<span style="background:rgba(29,158,117,${a});"></span>`).join('')}</div><span>많음</span></div>`;
   document.getElementById('heatmap-wrap').innerHTML = html;
 }
 
 function renderList(ideas) {
-  if (ideas.length === 0) {
-    document.getElementById('idea-list').innerHTML = '<div class="empty">아이디어를 추가해보세요</div>';
-    return;
-  }
-
+  if (ideas.length === 0) { document.getElementById('idea-list').innerHTML = '<div class="empty">아이디어를 추가해보세요</div>'; return; }
   const sorted = [...ideas].sort((a,b) => {
     const order = { '높음': 0, '보통': 1, '낮음': 2, '미설정': 3 };
     const ap = order[Object.keys(order).find(k => a.priority.includes(k)) || '미설정'] ?? 3;
     const bp = order[Object.keys(order).find(k => b.priority.includes(k)) || '미설정'] ?? 3;
     return ap - bp;
   });
-
   document.getElementById('idea-list').innerHTML = sorted.map(idea => {
     const prioKey = ['높음','보통','낮음'].find(k => idea.priority.includes(k)) || '미설정';
     const prioColor = PRIO_COLOR[prioKey];
     const matKey = MATS.find(m => idea.maturity.includes(m)) || '';
-    const matEmoji = MAT_EMOJI[matKey] || '';
-
-    return `<div class="idea-row">
-      <span class="idea-name" title="${idea.name}">${idea.name}</span>
-      <span class="badge" style="background:${prioColor}18;color:${prioColor};">${prioKey}</span>
-      <span class="badge" style="background:rgba(128,128,128,0.08);color:#888;">${matEmoji} ${matKey || '미설정'}</span>
-    </div>`;
+    return `<div class="idea-row"><span class="idea-name" title="${idea.name}">${idea.name}</span><span class="badge" style="background:${prioColor}18;color:${prioColor};">${prioKey}</span><span class="badge" style="background:rgba(128,128,128,0.08);color:#888;">${MAT_EMOJI[matKey] || ''} ${matKey || '미설정'}</span></div>`;
   }).join('');
 }
 
