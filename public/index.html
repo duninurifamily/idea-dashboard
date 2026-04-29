@@ -60,8 +60,18 @@
     font-weight: 600;
     color: var(--text);
   }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 3px;
+  }
   .updated {
     font-size: 11px;
+    color: var(--text3);
+  }
+  .updated-auto {
+    font-size: 10px;
     color: var(--text3);
   }
   .refresh-btn {
@@ -69,8 +79,8 @@
     color: var(--text2);
     background: var(--bg2);
     border: 0.5px solid var(--border2);
-    border-radius: 6px;
-    padding: 4px 10px;
+    border-radius: 20px;
+    padding: 3px 10px;
     cursor: pointer;
   }
   .refresh-btn:hover { background: var(--bg3); }
@@ -163,16 +173,8 @@
     font-size: 11px;
     color: var(--text3);
   }
-  .legend-bar {
-    display: flex;
-    gap: 2px;
-  }
-  .legend-bar span {
-    width: 18px;
-    height: 10px;
-    border-radius: 2px;
-    display: inline-block;
-  }
+  .legend-bar { display: flex; gap: 2px; }
+  .legend-bar span { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
 
   .list-card {
     background: var(--bg);
@@ -189,28 +191,10 @@
   }
   .idea-row:last-child { border-bottom: none; }
   .idea-name { flex: 1; font-size: 13px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .badge {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
 
-  .empty {
-    text-align: center;
-    color: var(--text3);
-    font-size: 13px;
-    padding: 40px 0;
-  }
-
-  .loading {
-    text-align: center;
-    color: var(--text3);
-    font-size: 13px;
-    padding: 60px 0;
-  }
-
+  .empty { text-align: center; color: var(--text3); font-size: 13px; padding: 40px 0; }
+  .loading { text-align: center; color: var(--text3); font-size: 13px; padding: 60px 0; }
   .error-msg {
     background: #fff0f0;
     border: 0.5px solid #fcc;
@@ -227,9 +211,12 @@
 <div class="header">
   <div>
     <div class="header-title">아이디어 금고 대시보드</div>
-    <div class="updated" id="updated">불러오는 중...</div>
+    <div class="header-meta">
+      <span class="updated" id="updated">불러오는 중...</span>
+      <span class="updated-auto" id="updated-auto"></span>
+    </div>
   </div>
-  <button class="refresh-btn" onclick="loadData()">새로고침</button>
+  <button class="refresh-btn" onclick="load()">지금 갱신</button>
 </div>
 
 <div id="error-area"></div>
@@ -300,7 +287,7 @@ const CAT_SHORT = { "마케팅/그로스":"마케팅","운영/프로세스":"운
 let catChartInst = null;
 let prioChartInst = null;
 
-async function loadData() {
+async function load() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('main').style.display = 'none';
   document.getElementById('error-area').innerHTML = '';
@@ -310,8 +297,10 @@ async function loadData() {
     if (!res.ok) throw new Error(`API 오류 ${res.status}`);
     const { ideas, updatedAt } = await res.json();
 
+    const t = new Date(updatedAt);
     document.getElementById('updated').textContent =
-      '마지막 업데이트: ' + new Date(updatedAt).toLocaleString('ko-KR');
+      t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
+    document.getElementById('updated-auto').textContent = '· 5분마다 자동 갱신';
 
     renderMetrics(ideas);
     renderCatChart(ideas);
@@ -343,10 +332,7 @@ function renderCatChart(ideas) {
   if (catChartInst) catChartInst.destroy();
   catChartInst = new Chart(document.getElementById('catChart'), {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [{ data: counts, backgroundColor: colors, borderRadius: 4, borderSkipped: false }]
-    },
+    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderRadius: 4, borderSkipped: false }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
@@ -366,10 +352,7 @@ function renderPrioChart(ideas) {
   if (prioChartInst) prioChartInst.destroy();
   prioChartInst = new Chart(document.getElementById('prioChart'), {
     type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]
-    },
+    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
@@ -397,7 +380,7 @@ function renderHeatmap(ideas) {
   }
 
   const maxVal = Math.max(...activeCats.flatMap(c =>
-    MATS.map(m => ideas.filter(i => i.category.includes(c.split('/')[0]) && i.maturity.includes(m.replace(/🌱|🌿|🌳/g,'').trim())).length)
+    MATS.map(m => ideas.filter(i => i.category.includes(c.split('/')[0]) && i.maturity.includes(m)).length)
   ), 1);
 
   let html = '<table class="hm-table"><thead><tr><th class="row-header"></th>';
@@ -408,14 +391,9 @@ function renderHeatmap(ideas) {
     const shortName = cat.length > 7 ? cat.slice(0,7)+'…' : cat;
     html += `<tr><td class="row-label" title="${cat}">${shortName}</td>`;
     MATS.forEach(mat => {
-      const count = ideas.filter(i =>
-        i.category.includes(cat.split('/')[0]) &&
-        i.maturity.includes(mat)
-      ).length;
+      const count = ideas.filter(i => i.category.includes(cat.split('/')[0]) && i.maturity.includes(mat)).length;
       const intensity = count === 0 ? 0 : 0.15 + (count / maxVal) * 0.80;
-      const bg = count === 0
-        ? 'rgba(128,128,128,0.06)'
-        : `rgba(29,158,117,${intensity.toFixed(2)})`;
+      const bg = count === 0 ? 'rgba(128,128,128,0.06)' : `rgba(29,158,117,${intensity.toFixed(2)})`;
       const textColor = intensity > 0.55 ? '#fff' : (count > 0 ? '#0a4433' : 'rgba(128,128,128,0.3)');
       html += `<td style="background:${bg};color:${textColor};" title="${cat} × ${mat}: ${count}개">${count > 0 ? count : ''}</td>`;
     });
@@ -461,7 +439,8 @@ function renderList(ideas) {
   }).join('');
 }
 
-loadData();
+load();
+setInterval(load, 5 * 60 * 1000);
 </script>
 </body>
 </html>
