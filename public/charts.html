@@ -17,7 +17,6 @@
  .legend span { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
  .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
  .statusbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
- .statusbar-left { display: flex; align-items: center; gap: 8px; }
  .statusbar-time { font-size: 11px; color: var(--text3); }
  .statusbar-auto { font-size: 10px; color: var(--text3); }
  .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
@@ -26,11 +25,9 @@
 </head>
 <body>
 <div class="statusbar">
- <div class="statusbar-left">
-  <span class="statusbar-time" id="updated">—</span>
-  <span class="statusbar-auto">· 5분마다 자동 갱신</span>
-  <button class="btn-refresh" onclick="load()">지금 갱신</button>
- </div>
+ <span class="statusbar-time" id="updated">—</span>
+ <span class="statusbar-auto">· 5분마다 자동 갱신</span>
+ <button class="btn-refresh" onclick="load()">지금 갱신</button>
 </div>
 <div class="grid">
  <div class="card">
