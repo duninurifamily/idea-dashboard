@@ -5,75 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>히트맵</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; } }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
-  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
-  .title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-  .desc { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
-  table { width: 100%; border-collapse: separate; border-spacing: 4px; }
-  th { font-size: 11px; font-weight: 500; color: var(--text2); text-align: center; padding: 4px; }
-  th.row-header { text-align: left; }
-  td { border-radius: 6px; height: 44px; text-align: center; font-size: 13px; font-weight: 600; transition: transform 0.1s; cursor: default; }
-  td:hover { transform: scale(1.06); }
-  td.row-label { font-size: 11px; font-weight: 400; color: var(--text2); text-align: left; background: transparent !important; height: auto; padding-right: 8px; white-space: nowrap; }
-  .legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--text3); }
-  .legend-bar { display: flex; gap: 2px; }
-  .legend-bar span { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
-  .updated { font-size: 11px; color: var(--text3); text-align: right; margin-bottom: 10px; cursor: pointer; }
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; }
+ @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; } }
+ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
+ .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
+ .title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+ .desc { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
+ table { width: 100%; border-collapse: separate; border-spacing: 4px; }
+ th { font-size: 11px; font-weight: 500; color: var(--text2); text-align: center; padding: 4px; }
+ th.row-header { text-align: left; }
+ td { border-radius: 6px; height: 44px; text-align: center; font-size: 13px; font-weight: 600; transition: transform 0.1s; cursor: default; }
+ td:hover { transform: scale(1.06); }
+ td.row-label { font-size: 11px; font-weight: 400; color: var(--text2); text-align: left; background: transparent !important; height: auto; padding-right: 8px; white-space: nowrap; }
+ .legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--text3); }
+ .legend-bar { display: flex; gap: 2px; }
+ .legend-bar span { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
+ .statusbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+ .statusbar-left { display: flex; align-items: center; gap: 8px; }
+ .statusbar-time { font-size: 11px; color: var(--text3); }
+ .statusbar-auto { font-size: 10px; color: var(--text3); }
+ .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
+ @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); } }
 </style>
 </head>
 <body>
-<div class="updated" id="updated" onclick="load()">— 클릭해서 새로고침</div>
+<div class="statusbar">
+ <div class="statusbar-left">
+  <span class="statusbar-time" id="updated">—</span>
+  <span class="statusbar-auto">· 5분마다 자동 갱신</span>
+ </div>
+ <button class="btn-refresh" onclick="load()">지금 갱신</button>
+</div>
 <div class="card">
-  <div class="title">카테고리 × 성숙도 히트맵</div>
-  <div class="desc">셀이 진할수록 아이디어가 많음. 마우스 올리면 개수 확인.</div>
-  <div id="heatmap"></div>
-  <div class="legend">
-    <span>적음</span>
-    <div class="legend-bar">${[0.1,0.3,0.5,0.7,0.9].map(a => `<span style="background:rgba(29,158,117,${a})"></span>`).join('')}</div>
-    <span>많음</span>
-  </div>
+ <div class="title">카테고리 × 성숙도 히트맵</div>
+ <div class="desc">셀이 진할수록 아이디어가 많음. 마우스 올리면 개수 확인.</div>
+ <div id="heatmap"></div>
+ <div class="legend">
+  <span>적음</span>
+  <div class="legend-bar"><span style="background:rgba(29,158,117,0.1)"></span><span style="background:rgba(29,158,117,0.3)"></span><span style="background:rgba(29,158,117,0.5)"></span><span style="background:rgba(29,158,117,0.7)"></span><span style="background:rgba(29,158,117,0.9)"></span></div>
+  <span>많음</span>
+ </div>
 </div>
 <script>
 const CATS = ["마케팅/그로스","운영/프로세스","제품/서비스","고객/시장","수익모델","기술/도구","기타 인사이트"];
 const MATS = ["씨앗","싹","나무"];
 const MAT_EMOJI = {"씨앗":"🌱","싹":"🌿","나무":"🌳"};
-
 async function load() {
-  try {
-    const res = await fetch('/.netlify/functions/notion-data');
-    const { ideas, updatedAt } = await res.json();
-    document.getElementById('updated').textContent = '업데이트: ' + new Date(updatedAt).toLocaleString('ko-KR') + ' · 클릭해서 새로고침';
-
-    const activeCats = CATS.filter(c => ideas.some(i => i.category.includes(c.split('/')[0])));
-    const maxVal = Math.max(...activeCats.flatMap(c => MATS.map(m => ideas.filter(i => i.category.includes(c.split('/')[0]) && i.maturity.includes(m)).length)), 1);
-
-    let html = '<table><thead><tr><th class="row-header"></th>';
-    MATS.forEach(m => { html += `<th>${MAT_EMOJI[m]} ${m}</th>`; });
-    html += '</tr></thead><tbody>';
-
-    activeCats.forEach(cat => {
-      const short = cat.length > 7 ? cat.slice(0,7)+'…' : cat;
-      html += `<tr><td class="row-label" title="${cat}">${short}</td>`;
-      MATS.forEach(mat => {
-        const count = ideas.filter(i => i.category.includes(cat.split('/')[0]) && i.maturity.includes(mat)).length;
-        const alpha = count === 0 ? 0 : 0.15 + (count / maxVal) * 0.80;
-        const bg = count === 0 ? 'rgba(128,128,128,0.06)' : `rgba(29,158,117,${alpha.toFixed(2)})`;
-        const color = alpha > 0.55 ? '#fff' : (count > 0 ? '#0a4433' : 'rgba(128,128,128,0.25)');
-        html += `<td style="background:${bg};color:${color};" title="${cat} × ${mat}: ${count}개">${count > 0 ? count : ''}</td>`;
-      });
-      html += '</tr>';
-    });
-
-    html += '</tbody></table>';
-    document.getElementById('heatmap').innerHTML = html;
-  } catch(e) {
-    document.getElementById('updated').textContent = '오류: ' + e.message;
-  }
+ try {
+  const res = await fetch('/.netlify/functions/notion-data');
+  const { ideas, updatedAt } = await res.json();
+  const t = new Date(updatedAt);
+  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
+  const activeCats = CATS.filter(c => ideas.some(i => i.category.includes(c.split('/')[0])));
+  const maxVal = Math.max(...activeCats.flatMap(c => MATS.map(m => ideas.filter(i => i.category.includes(c.split('/')[0]) && i.maturity.includes(m)).length)), 1);
+  let html = '<table><thead><tr><th class="row-header"></th>';
+  MATS.forEach(m => { html += `<th>${MAT_EMOJI[m]} ${m}</th>`; });
+  html += '</tr></thead><tbody>';
+  activeCats.forEach(cat => {
+   const short = cat.length > 7 ? cat.slice(0,7)+'…' : cat;
+   html += `<tr><td class="row-label" title="${cat}">${short}</td>`;
+   MATS.forEach(mat => {
+    const count = ideas.filter(i => i.category.includes(cat.split('/')[0]) && i.maturity.includes(mat)).length;
+    const alpha = count === 0 ? 0 : 0.15 + (count / maxVal) * 0.80;
+    const bg = count === 0 ? 'rgba(128,128,128,0.06)' : `rgba(29,158,117,${alpha.toFixed(2)})`;
+    const color = alpha > 0.55 ? '#fff' : (count > 0 ? '#0a4433' : 'rgba(128,128,128,0.25)');
+    html += `<td style="background:${bg};color:${color};" title="${cat} × ${mat}: ${count}개">${count > 0 ? count : ''}</td>`;
+   });
+   html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('heatmap').innerHTML = html;
+ } catch(e) {
+  document.getElementById('updated').textContent = '오류: ' + e.message;
+ }
 }
 load();
+setInterval(load, 5 * 60 * 1000);
 </script>
 </body>
 </html>
