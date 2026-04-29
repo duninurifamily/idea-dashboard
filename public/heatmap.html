@@ -42,7 +42,7 @@
 </div>
 <div class="card">
  <div class="title">카테고리 × 성숙도 히트맵</div>
- <div class="desc">셀에 마우스 올리면 최근 아이디어 최대 10개 확인.</div>
+ <div class="desc">셀에 마우스 올리면 아이디어 목록 확인.</div>
  <div id="heatmap"></div>
  <div class="legend">
   <span>적음</span>
@@ -58,17 +58,26 @@
 </div>
 <div class="tooltip" id="tooltip"></div>
 <script>
-const CATS = ["마케팅/그로스","운영/프로세스","제품/서비스","고객/시장","수익모델","기술/도구","기타 인사이트"];
-const MAT_ORDER = ["씨앗","싹","나무"];
+// 카테고리 키워드 (이모지 무관하게 매칭)
+const CAT_KEYS = ["마케팅","운영","제품","고객","수익","기술","기타"];
+const CAT_LABELS = {"마케팅":"마케팅/그로스","운영":"운영/프로세스","제품":"제품/서비스","고객":"고객/시장","수익":"수익모델","기술":"기술/도구","기타":"기타 인사이트"};
+// 성숙도 키워드
+const MAT_KEYS = ["씨앗","싹","나무"];
 const MAT_EMOJI = {"씨앗":"🌱","싹":"🌿","나무":"🌳"};
 
 const tooltip = document.getElementById('tooltip');
 
-function showTooltip(e, ideas) {
- if (!ideas.length) { tooltip.style.display = 'none'; return; }
- const names = ideas.slice(0, 10).map(i => '· ' + i.name).join('
+function getCatKey(cat) {
+ return CAT_KEYS.find(k => cat.includes(k)) || null;
+}
+function getMatKey(mat) {
+ return MAT_KEYS.find(k => mat.includes(k)) || null;
+}
+
+function showTooltip(e, names) {
+ if (!names.length) { tooltip.style.display = 'none'; return; }
+ tooltip.textContent = names.slice(0,10).map(n => '· ' + n).join('
 ');
- tooltip.textContent = names;
  tooltip.style.display = 'block';
  moveTooltip(e);
 }
@@ -88,35 +97,36 @@ async function load() {
   const t = new Date(updatedAt);
   document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
 
-  // 성숙도: 데이터에 실제 존재하는 것만, MAT_ORDER 순서 유지 + 미등록 추가
-  const matInData = new Set(ideas.map(i => i.maturity).filter(Boolean));
-  const MATS = [...MAT_ORDER.filter(m => [...matInData].some(s => s.includes(m))),
-               ...[...matInData].filter(s => !MAT_ORDER.some(m => s.includes(m)))];
+  // 실제 데이터에 있는 카테고리/성숙도 키만 사용
+  const activeCatKeys = CAT_KEYS.filter(k => ideas.some(i => getCatKey(i.category) === k));
+  // 성숙도: MAT_KEYS 순서 유지 + 데이터에 없는 키워드 제외 + 미설정 추가
+  const hasUnset = ideas.some(i => !getMatKey(i.maturity));
+  const activeMatKeys = [...MAT_KEYS.filter(k => ideas.some(i => getMatKey(i.maturity) === k)),
+                         ...(hasUnset ? ['미설정'] : [])];
 
-  const activeCats = CATS.filter(c => ideas.some(i => i.category && i.category.includes(c.split('/')[0])));
-  if (activeCats.length === 0 || MATS.length === 0) {
+  if (!activeCatKeys.length || !activeMatKeys.length) {
    document.getElementById('heatmap').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">아이디어를 추가하면 히트맵이 나타나요</div>';
    return;
   }
 
-  const maxVal = Math.max(...activeCats.flatMap(c =>
-   MATS.map(m => ideas.filter(i => i.category && i.category.includes(c.split('/')[0]) && i.maturity && i.maturity.includes(m)).length)
+  const maxVal = Math.max(...activeCatKeys.flatMap(ck =>
+   activeMatKeys.map(mk => ideas.filter(i => getCatKey(i.category) === ck && (mk === '미설정' ? !getMatKey(i.maturity) : getMatKey(i.maturity) === mk)).length)
   ), 1);
 
   let html = '<table><thead><tr><th class="row-header"></th>';
-  MATS.forEach(m => { html += `<th>${MAT_EMOJI[m] || ''} ${m}</th>`; });
+  activeMatKeys.forEach(mk => { html += `<th>${MAT_EMOJI[mk] || ''} ${mk}</th>`; });
   html += '</tr></thead><tbody>';
 
-  activeCats.forEach(cat => {
-   const short = cat.length > 8 ? cat.slice(0,8)+'…' : cat;
-   html += `<tr><td class="row-label" title="${cat}">${short}</td>`;
-   MATS.forEach(mat => {
-    const matched = ideas.filter(i => i.category && i.category.includes(cat.split('/')[0]) && i.maturity && i.maturity.includes(mat));
+  activeCatKeys.forEach(ck => {
+   html += `<tr><td class="row-label" title="${CAT_LABELS[ck]}">${CAT_LABELS[ck]}</td>`;
+   activeMatKeys.forEach(mk => {
+    const matched = ideas.filter(i => getCatKey(i.category) === ck && (mk === '미설정' ? !getMatKey(i.maturity) : getMatKey(i.maturity) === mk));
     const count = matched.length;
     const alpha = count === 0 ? 0 : 0.15 + (count / maxVal) * 0.80;
     const bg = count === 0 ? 'rgba(128,128,128,0.06)' : `rgba(29,158,117,${alpha.toFixed(2)})`;
     const color = alpha > 0.55 ? '#fff' : (count > 0 ? '#0a4433' : 'rgba(128,128,128,0.25)');
-    html += `<td style="background:${bg};color:${color};" data-count="${count}" data-names="${matched.map(i=>i.name).join('|')}">${count > 0 ? count : ''}</td>`;
+    const names = matched.sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0)).map(i => i.name);
+    html += `<td style="background:${bg};color:${color};" data-names="${names.join('|').replace(/"/g,'&quot;')}">${count > 0 ? count : ''}</td>`;
    });
    html += '</tr>';
   });
@@ -124,10 +134,7 @@ async function load() {
   document.getElementById('heatmap').innerHTML = html;
 
   document.querySelectorAll('#heatmap td:not(.row-label)').forEach(td => {
-   td.addEventListener('mouseenter', e => {
-    const names = td.dataset.names ? td.dataset.names.split('|').filter(Boolean) : [];
-    showTooltip(e, names.map(n => ({name: n})));
-   });
+   td.addEventListener('mouseenter', e => showTooltip(e, (td.dataset.names || '').split('|').filter(Boolean)));
    td.addEventListener('mousemove', moveTooltip);
    td.addEventListener('mouseleave', hideTooltip);
   });
