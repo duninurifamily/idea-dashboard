@@ -9,16 +9,16 @@
  :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; }
  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; } }
  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
- .statusbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
- .statusbar-time { font-size: 11px; color: var(--text3); }
- .statusbar-auto { font-size: 10px; color: var(--text3); }
- .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg2); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
- @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); background: var(--bg2); } }
- .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+ .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
  .label { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
  .value { font-size: 32px; font-weight: 600; color: var(--text); }
  .sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+ .statusbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+ .statusbar-time { font-size: 11px; color: var(--text3); }
+ .statusbar-auto { font-size: 10px; color: var(--text3); }
+ .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
+ @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); } }
 </style>
 </head>
 <body>
@@ -27,29 +27,54 @@
  <span class="statusbar-auto">· 5분마다 자동 갱신</span>
  <button class="btn-refresh" onclick="load()">지금 갱신</button>
 </div>
-<div class="grid">
+<div class="grid" id="grid">
  <div class="card"><div class="label">전체 아이디어</div><div class="value" id="total">—</div><div class="sub">등록된 아이디어</div></div>
- <div class="card"><div class="label">🌱 씨앗</div><div class="value" id="seed">—</div><div class="sub">발굴 단계</div></div>
- <div class="card"><div class="label">🌿 싹</div><div class="value" id="sprout">—</div><div class="sub">구체화 중</div></div>
- <div class="card"><div class="label">🌳 나무</div><div class="value" id="tree">—</div><div class="sub">사업화 검토</div></div>
 </div>
 <script>
+var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
+function getMatEmoji(m) {
+ var key = Object.keys(MAT_EMOJI).find(function(k){ return m && m.includes(k); });
+ return key ? MAT_EMOJI[key] : '';
+}
+function getMatLabel(m) {
+ var key = Object.keys(MAT_EMOJI).find(function(k){ return m && m.includes(k); });
+ return key || m;
+}
+
 async function load() {
  try {
-  const res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
-  const { ideas, updatedAt } = await res.json();
+  var res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
+  var data = await res.json();
+  var ideas = data.ideas;
+  var t = new Date(data.updatedAt);
+  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 업데이트';
+
+  // 전체 카드
   document.getElementById('total').textContent = ideas.length;
-  document.getElementById('seed').textContent = ideas.filter(i => i.maturity.includes('씨앗')).length;
-  document.getElementById('sprout').textContent = ideas.filter(i => i.maturity.includes('싹')).length;
-  document.getElementById('tree').textContent = ideas.filter(i => i.maturity.includes('나무')).length;
-  const t = new Date(updatedAt);
-  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
+
+  // 성숙도 동적 추출
+  var matSet = {};
+  ideas.forEach(function(i) {
+   if (!i.maturity) return;
+   var label = getMatLabel(i.maturity);
+   if (!matSet[label]) matSet[label] = { emoji: getMatEmoji(i.maturity), count: 0 };
+   matSet[label].count++;
+  });
+
+  // 그리드 렌더링 (전체 + 성숙도별)
+  var html = '<div class="card"><div class="label">전체 아이디어</div><div class="value">'+ideas.length+'</div><div class="sub">등록된 아이디어</div></div>';
+  Object.keys(matSet).forEach(function(label) {
+   var m = matSet[label];
+   html += '<div class="card"><div class="label">'+m.emoji+' '+label+'</div><div class="value">'+m.count+'</div><div class="sub">'+label+' 단계</div></div>';
+  });
+  document.getElementById('grid').innerHTML = html;
+
  } catch(e) {
-  document.getElementById('updated').textContent = '오류: ' + e.message;
+  document.getElementById('updated').textContent = '오류: '+e.message;
  }
 }
 load();
-setInterval(load, 5 * 60 * 1000);
+setInterval(load, 5*60*1000);
 </script>
 </body>
 </html>
