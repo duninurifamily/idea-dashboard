@@ -48,63 +48,57 @@
 </div>
 <div class="tip" id="tip"></div>
 <script>
-var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
-var tip = document.getElementById('tip');
+var MAT_EMOJI = {};
+MAT_EMOJI["\uC528\uC575"] = "\uD83C\uDF31";
+MAT_EMOJI["\uC2F9"] = "\uD83C\uDF3F";
+MAT_EMOJI["\uB098\uBB34"] = "\uD83C\uDF33";
+MAT_EMOJI["\uAF43"] = "\uD83C\uDF38";
+MAT_EMOJI["\uC5F4\uB9E4"] = "\uD83C\uDF4E";
 
+var tip = document.getElementById("tip");
 function getCatLabel(v) {
  if (!v) return null;
- var keys = ['마케팅','운영','제품','고객','수익','기술','기타'];
+ var keys = ["\uB9C8\uCF00\uD305","\uC6B4\uC601","\uC81C\uD488","\uACE0\uAC1D","\uC218\uC775","\uAE30\uC220","\uAE30\uD0C0"];
  var k = keys.find(function(k){ return v.includes(k); });
- return k || v; // 매칭 안되면 원본값 사용 (예: "테스트")
+ return k || v;
 }
 function getMatLabel(v) {
- if (!v || v === '미설정') return null;
+ if (!v || v === "\uBBF8\uC124\uC815") return null;
  var k = Object.keys(MAT_EMOJI).find(function(k){ return v.includes(k); });
- return k || v; // 매칭 안되면 원본값 사용 (예: "꽃")
+ return k || v;
 }
-function getMatEmoji(label) {
- return MAT_EMOJI[label] || '';
-}
-
 function showTip(e, names) {
  if (!names.length) return;
- tip.textContent = names.slice(0,10).map(function(n){ return '· '+n; }).join('
-');
- tip.style.display = 'block';
+ tip.textContent = names.slice(0,10).map(function(n){ return "\u00B7 "+n; }).join("\n");
+ tip.style.display = "block";
  moveTip(e);
 }
 function moveTip(e) {
  var x=e.clientX+14, y=e.clientY+14;
  if (x+tip.offsetWidth > window.innerWidth-8) x=e.clientX-tip.offsetWidth-14;
  if (y+tip.offsetHeight > window.innerHeight-8) y=e.clientY-tip.offsetHeight-14;
- tip.style.left=x+'px'; tip.style.top=y+'px';
+ tip.style.left=x+"px"; tip.style.top=y+"px";
 }
-function hideTip() { tip.style.display='none'; }
+function hideTip() { tip.style.display="none"; }
 
 async function load() {
  try {
-  var res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
+  var res = await fetch("https://notion-proxy.duninurifamily.workers.dev/");
   var data = await res.json();
   var ideas = data.ideas;
   var t = new Date(data.updatedAt);
-  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 업데이트';
-
-  // 카테고리/성숙도 동적 추출
+  document.getElementById("updated").textContent = t.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})+" \uC5C5\uB370\uC774\uD2B8";
   var catSet = {}, matSet = {};
   ideas.forEach(function(i) {
-   var cl = getCatLabel(i.category);
-   if (cl) catSet[cl] = true;
-   var ml = getMatLabel(i.maturity);
-   if (ml) matSet[ml] = true;
+   var cl = getCatLabel(i.category); if (cl) catSet[cl] = true;
+   var ml = getMatLabel(i.maturity); if (ml) matSet[ml] = true;
   });
   var cats = Object.keys(catSet);
   var mats = Object.keys(matSet);
-
   if (!cats.length || !mats.length) {
-   document.getElementById('hm').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">아이디어를 추가하면 히트맵이 나타나요</div>';
+   document.getElementById("hm").innerHTML = "<div style=\"padding:20px;text-align:center;color:var(--text3);font-size:13px;\">\uC544\uC774\uB514\uC5B4\uB97C \uCD94\uAC00\uD558\uBA74 \uD788\uD2B8\uB9F5\uC774 \uB098\uD0C0\uB098\uC694</div>";
    return;
   }
-
   var maxVal = 1;
   cats.forEach(function(ck) {
    mats.forEach(function(mk) {
@@ -112,36 +106,33 @@ async function load() {
     if (c > maxVal) maxVal = c;
    });
   });
-
-  var html = '<table><thead><tr><th class="row-header"></th>';
-  mats.forEach(function(mk){ html += '<th>'+(getMatEmoji(mk)||'')+' '+mk+'</th>'; });
-  html += '</tr></thead><tbody>';
-
+  var html = "<table><thead><tr><th class=\"row-header\"></th>";
+  mats.forEach(function(mk){ html += "<th>"+(MAT_EMOJI[mk]||"")+" "+mk+"</th>"; });
+  html += "</tr></thead><tbody>";
   cats.forEach(function(ck) {
-   html += '<tr><td class="row-label" title="'+ck+'">'+ck+'</td>';
+   html += "<tr><td class=\"row-label\" title=\""+ck+"\">"+ck+"</td>";
    mats.forEach(function(mk) {
     var matched = ideas.filter(function(i){ return getCatLabel(i.category)===ck && getMatLabel(i.maturity)===mk; });
     matched.sort(function(a,b){ return new Date(b.createdAt||0)-new Date(a.createdAt||0); });
     var count = matched.length;
     var alpha = count===0 ? 0 : 0.15+(count/maxVal)*0.80;
-    var bg = count===0 ? 'rgba(128,128,128,0.06)' : 'rgba(29,158,117,'+alpha.toFixed(2)+')';
-    var color = alpha>0.55 ? '#fff' : (count>0 ? '#0a4433' : 'rgba(128,128,128,0.25)');
-    var names = matched.map(function(i){ return i.name; }).join('||').replace(/"/g,'');
-    html += '<td style="background:'+bg+';color:'+color+';" data-names="'+names+'">'+(count||'')+'</td>';
+    var bg = count===0 ? "rgba(128,128,128,0.06)" : "rgba(29,158,117,"+alpha.toFixed(2)+")";
+    var color = alpha>0.55 ? "#fff" : (count>0 ? "#0a4433" : "rgba(128,128,128,0.25)");
+    var names = matched.map(function(i){ return i.name; }).join("||").replace(/"/g,"");
+    html += "<td style=\"background:"+bg+";color:"+color+";\" data-names=\""+names+"\">"+( count||"")+"</td>";
    });
-   html += '</tr>';
+   html += "</tr>";
   });
-  html += '</tbody></table>';
-  document.getElementById('hm').innerHTML = html;
-
-  document.querySelectorAll('#hm td:not(.row-label)').forEach(function(td) {
-   var names = (td.dataset.names||'').split('||').filter(Boolean);
-   td.addEventListener('mouseenter', function(e){ showTip(e, names); });
-   td.addEventListener('mousemove', moveTip);
-   td.addEventListener('mouseleave', hideTip);
+  html += "</tbody></table>";
+  document.getElementById("hm").innerHTML = html;
+  document.querySelectorAll("#hm td:not(.row-label)").forEach(function(td) {
+   var names = (td.dataset.names||"").split("||").filter(Boolean);
+   td.addEventListener("mouseenter", function(e){ showTip(e, names); });
+   td.addEventListener("mousemove", moveTip);
+   td.addEventListener("mouseleave", hideTip);
   });
  } catch(e) {
-  document.getElementById('updated').textContent = '오류: '+e.message;
+  document.getElementById("updated").textContent = "\uC624\uB958: "+e.message;
  }
 }
 load();
