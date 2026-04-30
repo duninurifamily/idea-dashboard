@@ -7,8 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
- :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; --border: rgba(0,0,0,0.08); }
- @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; --border: rgba(255,255,255,0.08); } }
+ :root { --bg: #ffffff; --bg2: #f7f7f5; --text2: #6b6b6b; --text3: #a0a0a0; }
+ @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text2: #a0a0a0; --text3: #666; } }
  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
@@ -32,50 +32,87 @@
 <div class="grid">
  <div class="card">
   <div class="title">카테고리별 분포</div>
-  <div style="position:relative;height:180px;"><canvas id="catChart" role="img" aria-label="카테고리별 아이디어 수"></canvas></div>
+  <div style="position:relative;height:180px;"><canvas id="catChart"></canvas></div>
  </div>
  <div class="card">
-  <div class="title">우선순위 분포</div>
-  <div style="position:relative;height:180px;"><canvas id="prioChart" role="img" aria-label="우선순위별 아이디어 수"></canvas></div>
-  <div class="legend" id="prioLegend"></div>
+  <div class="title">성숙도 분포</div>
+  <div style="position:relative;height:180px;"><canvas id="matChart"></canvas></div>
+  <div class="legend" id="matLegend"></div>
  </div>
 </div>
 <script>
-const CATS = ["마케팅/그로스","운영/프로세스","제품/서비스","고객/시장","수익모델","기술/도구","기타 인사이트"];
-const CAT_SHORT = {"마케팅/그로스":"마케팅","운영/프로세스":"운영","제품/서비스":"제품","고객/시장":"고객","수익모델":"수익","기술/도구":"기술","기타 인사이트":"기타"};
-const CAT_COLORS = ['#378add','#1d9e75','#e24b4a','#ef9f27','#a78bfa','#f472b6','#94a3b8'];
-const PRIO_COLORS = ['#e24b4a','#ef9f27','#378add'];
-let catInst = null, prioInst = null;
+var CAT_COLORS = ['#378add','#1d9e75','#e24b4a','#ef9f27','#a78bfa','#f472b6','#94a3b8','#fb923c','#34d399','#f87171'];
+var MAT_COLORS = ['#1d9e75','#378add','#ef9f27','#e24b4a','#a78bfa','#f472b6','#94a3b8','#fb923c'];
+var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
+
+function getLabel(v, type) {
+ if (type === 'cat') {
+  var keys = ['마케팅','운영','제품','고객','수익','기술','기타'];
+  var k = keys.find(function(k){ return v && v.includes(k); });
+  return k || v;
+ } else {
+  var mk = Object.keys(MAT_EMOJI).find(function(k){ return v && v.includes(k); });
+  return mk || v;
+ }
+}
+
+var catInst = null, matInst = null;
+
 async function load() {
  try {
-  const res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
-  const { ideas, updatedAt } = await res.json();
-  const t = new Date(updatedAt);
-  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
-  const catCounts = CATS.map(c => ideas.filter(i => i.category.includes(c.split('/')[0])).length);
+  var res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
+  var data = await res.json();
+  var ideas = data.ideas;
+  var t = new Date(data.updatedAt);
+  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 업데이트';
+
+  // 카테고리 동적 추출
+  var catMap = {};
+  ideas.forEach(function(i) {
+   if (!i.category) return;
+   var label = getLabel(i.category, 'cat');
+   catMap[label] = (catMap[label]||0)+1;
+  });
+  var catLabels = Object.keys(catMap);
+  var catCounts = catLabels.map(function(k){ return catMap[k]; });
+
+  // 성숙도 동적 추출
+  var matMap = {};
+  ideas.forEach(function(i) {
+   if (!i.maturity || i.maturity === '미설정') return;
+   var label = getLabel(i.maturity, 'mat');
+   matMap[label] = (matMap[label]||0)+1;
+  });
+  var matLabels = Object.keys(matMap);
+  var matCounts = matLabels.map(function(k){ return matMap[k]; });
+  var matEmojis = matLabels.map(function(l){ return (MAT_EMOJI[l]||'')+' '+l; });
+
+  // 카테고리 차트
   if (catInst) catInst.destroy();
   catInst = new Chart(document.getElementById('catChart'), {
    type: 'bar',
-   data: { labels: CATS.map(c => CAT_SHORT[c]), datasets: [{ data: catCounts, backgroundColor: CAT_COLORS, borderRadius: 4, borderSkipped: false }] },
+   data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: CAT_COLORS.slice(0, catLabels.length), borderRadius: 4, borderSkipped: false }] },
    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 }, color: '#888' }, grid: { color: 'rgba(128,128,128,0.1)' } }, x: { ticks: { font: { size: 10 }, color: '#888', maxRotation: 30 }, grid: { display: false } } } }
   });
-  const prioLabels = ['높음','보통','낮음'];
-  const prioCounts = prioLabels.map(p => ideas.filter(i => i.priority.includes(p)).length);
-  if (prioInst) prioInst.destroy();
-  prioInst = new Chart(document.getElementById('prioChart'), {
+
+  // 성숙도 도넛 차트
+  if (matInst) matInst.destroy();
+  matInst = new Chart(document.getElementById('matChart'), {
    type: 'doughnut',
-   data: { labels: prioLabels, datasets: [{ data: prioCounts, backgroundColor: PRIO_COLORS, borderWidth: 0, hoverOffset: 6 }] },
-   options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}개` } } } }
+   data: { labels: matEmojis, datasets: [{ data: matCounts, backgroundColor: MAT_COLORS.slice(0, matLabels.length), borderWidth: 0, hoverOffset: 6 }] },
+   options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx){ return ' '+ctx.label+': '+ctx.raw+'개'; } } } } }
   });
-  document.getElementById('prioLegend').innerHTML = prioLabels.map((l,i) =>
-   `<span><span class="dot" style="background:${PRIO_COLORS[i]}"></span>${l} ${prioCounts[i]}개</span>`
-  ).join('');
+
+  document.getElementById('matLegend').innerHTML = matLabels.map(function(l,i){
+   return '<span><span class="dot" style="background:'+MAT_COLORS[i]+'"></span>'+(MAT_EMOJI[l]||'')+' '+l+' '+matCounts[i]+'개</span>';
+  }).join('');
+
  } catch(e) {
-  document.getElementById('updated').textContent = '오류: ' + e.message;
+  document.getElementById('updated').textContent = '오류: '+e.message;
  }
 }
 load();
-setInterval(load, 5 * 60 * 1000);
+setInterval(load, 5*60*1000);
 </script>
 </body>
 </html>
