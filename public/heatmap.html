@@ -63,13 +63,14 @@ function moveTip(e) {
 }
 function hideTip() { tip.style.display='none'; }
 
-var CAT_KEYS = ['마케팅','운영','제품','고객','수익','기술','기타'];
-var CAT_LABEL = {'마케팅':'마케팅/그로스','운영':'운영/프로세스','제품':'제품/서비스','고객':'고객/시장','수익':'수익모델','기술':'기술/도구','기타':'기타 인사이트'};
-var MAT_ORDER = ['씨앗','싹','나무'];
-var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳'};
+var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
 
-function getCat(v) { return CAT_KEYS.find(function(k){return v&&v.includes(k);})||null; }
-function getMat(v) { return MAT_ORDER.find(function(k){return v&&v.includes(k);})||null; }
+function cleanLabel(v) {
+ if (!v || v === '미설정') return null;
+ return v.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{1F000}-\u{1F02F}]|\u{FE0F}/gu, '').trim();
+}
+function getCat(v) { return cleanLabel(v); }
+function getMat(v) { return cleanLabel(v); }
 
 async function load() {
  try {
@@ -100,7 +101,7 @@ async function load() {
   html += '</tr></thead><tbody>';
 
   activeCats.forEach(function(ck) {
-   html += '<tr><td class="row-label" title="'+CAT_LABEL[ck]+'">'+CAT_LABEL[ck]+'</td>';
+   html += '<tr><td class="row-label" title="'+ck+'">'+ck+'</td>';
    activeMats.forEach(function(mk) {
     var matched = ideas.filter(function(i){ return getCat(i.category)===ck && getMat(i.maturity)===mk; });
     matched.sort(function(a,b){ return new Date(b.createdAt||0)-new Date(a.createdAt||0); });
