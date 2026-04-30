@@ -48,7 +48,7 @@ const PRIO_COLORS = ['#e24b4a','#ef9f27','#378add'];
 let catInst = null, prioInst = null;
 async function load() {
  try {
-  const res = await fetch('/.netlify/functions/notion-data');
+  const res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
   const { ideas, updatedAt } = await res.json();
   const t = new Date(updatedAt);
   document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
