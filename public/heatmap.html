@@ -6,8 +6,8 @@
 <title>히트맵</title>
 <style>
  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
- :root { --bg: #ffffff; --bg2: #f7f7f5; --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0; }
- @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text: #f0f0f0; --text2: #a0a0a0; --text3: #666; } }
+ :root { --bg: #ffffff; --bg2: #f7f7f5; --text2: #6b6b6b; --text3: #a0a0a0; }
+ @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --bg2: #242424; --text2: #a0a0a0; --text3: #666; } }
  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); padding: 16px; }
  .card { background: var(--bg2); border-radius: 10px; padding: 16px; }
  .title { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
@@ -25,13 +25,7 @@
  .statusbar-auto { font-size: 10px; color: var(--text3); }
  .btn-refresh { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; background: var(--bg); border: 0.5px solid rgba(0,0,0,0.15); color: var(--text2); }
  @media (prefers-color-scheme: dark) { .btn-refresh { border-color: rgba(255,255,255,0.15); } }
- .tooltip {
-  display: none; position: fixed;
-  background: rgba(30,30,30,0.92); color: #fff;
-  font-size: 11px; padding: 8px 10px; border-radius: 8px;
-  z-index: 9999; max-width: 220px; pointer-events: none;
-  line-height: 1.8; white-space: pre-line;
- }
+ .tip { display:none; position:fixed; background:rgba(30,30,30,0.92); color:#fff; font-size:11px; padding:8px 10px; border-radius:8px; z-index:9999; max-width:220px; pointer-events:none; line-height:1.8; white-space:pre-line; }
 </style>
 </head>
 <body>
@@ -43,109 +37,97 @@
 <div class="card">
  <div class="title">카테고리 × 성숙도 히트맵</div>
  <div class="desc">셀에 마우스 올리면 아이디어 목록 확인.</div>
- <div id="heatmap"></div>
+ <div id="hm"></div>
  <div class="legend">
   <span>적음</span>
   <div class="legend-bar">
-   <span style="background:rgba(29,158,117,0.1)"></span>
-   <span style="background:rgba(29,158,117,0.3)"></span>
-   <span style="background:rgba(29,158,117,0.5)"></span>
-   <span style="background:rgba(29,158,117,0.7)"></span>
-   <span style="background:rgba(29,158,117,0.9)"></span>
+   <span style="background:rgba(29,158,117,0.1)"></span><span style="background:rgba(29,158,117,0.3)"></span><span style="background:rgba(29,158,117,0.5)"></span><span style="background:rgba(29,158,117,0.7)"></span><span style="background:rgba(29,158,117,0.9)"></span>
   </div>
   <span>많음</span>
  </div>
 </div>
-<div class="tooltip" id="tooltip"></div>
+<div class="tip" id="tip"></div>
 <script>
-// 카테고리 키워드 (이모지 무관하게 매칭)
-const CAT_KEYS = ["마케팅","운영","제품","고객","수익","기술","기타"];
-const CAT_LABELS = {"마케팅":"마케팅/그로스","운영":"운영/프로세스","제품":"제품/서비스","고객":"고객/시장","수익":"수익모델","기술":"기술/도구","기타":"기타 인사이트"};
-// 성숙도 키워드
-const MAT_KEYS = ["씨앗","싹","나무"];
-const MAT_EMOJI = {"씨앗":"🌱","싹":"🌿","나무":"🌳"};
+var tip = document.getElementById('tip');
+function showTip(e, names) {
+ if (!names.length) return;
+ tip.textContent = names.slice(0,10).map(function(n){return '· '+n;}).join('\n');
+ tip.style.display = 'block';
+ moveTip(e);
+}
+function moveTip(e) {
+ var x=e.clientX+14, y=e.clientY+14;
+ if (x+tip.offsetWidth > window.innerWidth-8) x=e.clientX-tip.offsetWidth-14;
+ if (y+tip.offsetHeight > window.innerHeight-8) y=e.clientY-tip.offsetHeight-14;
+ tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip() { tip.style.display='none'; }
 
-const tooltip = document.getElementById('tooltip');
+var CAT_KEYS = ['마케팅','운영','제품','고객','수익','기술','기타'];
+var CAT_LABEL = {'마케팅':'마케팅/그로스','운영':'운영/프로세스','제품':'제품/서비스','고객':'고객/시장','수익':'수익모델','기술':'기술/도구','기타':'기타 인사이트'};
+var MAT_ORDER = ['씨앗','싹','나무'];
+var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳'};
 
-function getCatKey(cat) {
- return CAT_KEYS.find(k => cat.includes(k)) || null;
-}
-function getMatKey(mat) {
- return MAT_KEYS.find(k => mat.includes(k)) || null;
-}
-
-function showTooltip(e, names) {
- if (!names.length) { tooltip.style.display = 'none'; return; }
- tooltip.textContent = names.slice(0,10).map(n => '· ' + n).join('
-');
- tooltip.style.display = 'block';
- moveTooltip(e);
-}
-function moveTooltip(e) {
- let x = e.clientX + 14, y = e.clientY + 14;
- if (x + tooltip.offsetWidth > window.innerWidth - 8) x = e.clientX - tooltip.offsetWidth - 14;
- if (y + tooltip.offsetHeight > window.innerHeight - 8) y = e.clientY - tooltip.offsetHeight - 14;
- tooltip.style.left = x + 'px';
- tooltip.style.top = y + 'px';
-}
-function hideTooltip() { tooltip.style.display = 'none'; }
+function getCat(v) { return CAT_KEYS.find(function(k){return v&&v.includes(k);})||null; }
+function getMat(v) { return MAT_ORDER.find(function(k){return v&&v.includes(k);})||null; }
 
 async function load() {
  try {
-  const res = await fetch('/.netlify/functions/notion-data');
-  const { ideas, updatedAt } = await res.json();
-  const t = new Date(updatedAt);
-  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업데이트';
+  var res = await fetch('/.netlify/functions/notion-data');
+  var data = await res.json();
+  var ideas = data.ideas;
+  var t = new Date(data.updatedAt);
+  document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 업데이트';
 
-  // 실제 데이터에 있는 카테고리/성숙도 키만 사용
-  const activeCatKeys = CAT_KEYS.filter(k => ideas.some(i => getCatKey(i.category) === k));
-  // 성숙도: MAT_KEYS 순서 유지 + 데이터에 없는 키워드 제외 + 미설정 추가
-  const hasUnset = ideas.some(i => !getMatKey(i.maturity));
-  const activeMatKeys = [...MAT_KEYS.filter(k => ideas.some(i => getMatKey(i.maturity) === k)),
-                         ...(hasUnset ? ['미설정'] : [])];
+  var activeCats = CAT_KEYS.filter(function(k){ return ideas.some(function(i){ return getCat(i.category)===k; }); });
+  var activeMats = MAT_ORDER.filter(function(k){ return ideas.some(function(i){ return getMat(i.maturity)===k; }); });
 
-  if (!activeCatKeys.length || !activeMatKeys.length) {
-   document.getElementById('heatmap').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">아이디어를 추가하면 히트맵이 나타나요</div>';
+  if (!activeCats.length || !activeMats.length) {
+   document.getElementById('hm').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">아이디어를 추가하면 히트맵이 나타나요</div>';
    return;
   }
 
-  const maxVal = Math.max(...activeCatKeys.flatMap(ck =>
-   activeMatKeys.map(mk => ideas.filter(i => getCatKey(i.category) === ck && (mk === '미설정' ? !getMatKey(i.maturity) : getMatKey(i.maturity) === mk)).length)
-  ), 1);
+  var maxVal = 1;
+  activeCats.forEach(function(ck) {
+   activeMats.forEach(function(mk) {
+    var c = ideas.filter(function(i){ return getCat(i.category)===ck && getMat(i.maturity)===mk; }).length;
+    if (c > maxVal) maxVal = c;
+   });
+  });
 
-  let html = '<table><thead><tr><th class="row-header"></th>';
-  activeMatKeys.forEach(mk => { html += `<th>${MAT_EMOJI[mk] || ''} ${mk}</th>`; });
+  var html = '<table><thead><tr><th class="row-header"></th>';
+  activeMats.forEach(function(mk){ html += '<th>'+(MAT_EMOJI[mk]||'')+' '+mk+'</th>'; });
   html += '</tr></thead><tbody>';
 
-  activeCatKeys.forEach(ck => {
-   html += `<tr><td class="row-label" title="${CAT_LABELS[ck]}">${CAT_LABELS[ck]}</td>`;
-   activeMatKeys.forEach(mk => {
-    const matched = ideas.filter(i => getCatKey(i.category) === ck && (mk === '미설정' ? !getMatKey(i.maturity) : getMatKey(i.maturity) === mk));
-    const count = matched.length;
-    const alpha = count === 0 ? 0 : 0.15 + (count / maxVal) * 0.80;
-    const bg = count === 0 ? 'rgba(128,128,128,0.06)' : `rgba(29,158,117,${alpha.toFixed(2)})`;
-    const color = alpha > 0.55 ? '#fff' : (count > 0 ? '#0a4433' : 'rgba(128,128,128,0.25)');
-    const names = matched.sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0)).map(i => i.name);
-    html += `<td style="background:${bg};color:${color};" data-names="${names.join('|').replace(/"/g,'&quot;')}">${count > 0 ? count : ''}</td>`;
+  activeCats.forEach(function(ck) {
+   html += '<tr><td class="row-label" title="'+CAT_LABEL[ck]+'">'+CAT_LABEL[ck]+'</td>';
+   activeMats.forEach(function(mk) {
+    var matched = ideas.filter(function(i){ return getCat(i.category)===ck && getMat(i.maturity)===mk; });
+    matched.sort(function(a,b){ return new Date(b.createdAt||0)-new Date(a.createdAt||0); });
+    var count = matched.length;
+    var alpha = count===0 ? 0 : 0.15+(count/maxVal)*0.80;
+    var bg = count===0 ? 'rgba(128,128,128,0.06)' : 'rgba(29,158,117,'+alpha.toFixed(2)+')';
+    var color = alpha>0.55 ? '#fff' : (count>0 ? '#0a4433' : 'rgba(128,128,128,0.25)');
+    var names = matched.map(function(i){return i.name;}).join('||').replace(/"/g,'');
+    html += '<td style="background:'+bg+';color:'+color+';" data-names="'+names+'">'+(count||'')+'</td>';
    });
    html += '</tr>';
   });
   html += '</tbody></table>';
-  document.getElementById('heatmap').innerHTML = html;
+  document.getElementById('hm').innerHTML = html;
 
-  document.querySelectorAll('#heatmap td:not(.row-label)').forEach(td => {
-   td.addEventListener('mouseenter', e => showTooltip(e, (td.dataset.names || '').split('|').filter(Boolean)));
-   td.addEventListener('mousemove', moveTooltip);
-   td.addEventListener('mouseleave', hideTooltip);
+  document.querySelectorAll('#hm td:not(.row-label)').forEach(function(td) {
+   var names = (td.dataset.names||'').split('||').filter(Boolean);
+   td.addEventListener('mouseenter', function(e){ showTip(e, names); });
+   td.addEventListener('mousemove', moveTip);
+   td.addEventListener('mouseleave', hideTip);
   });
-
  } catch(e) {
-  document.getElementById('updated').textContent = '오류: ' + e.message;
-  console.error(e);
+  document.getElementById('updated').textContent = '오류: '+e.message;
  }
 }
 load();
-setInterval(load, 5 * 60 * 1000);
+setInterval(load, 5*60*1000);
 </script>
 </body>
 </html>
