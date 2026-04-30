@@ -48,10 +48,28 @@
 </div>
 <div class="tip" id="tip"></div>
 <script>
+var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
 var tip = document.getElementById('tip');
+
+function getCatLabel(v) {
+ if (!v) return null;
+ var keys = ['마케팅','운영','제품','고객','수익','기술','기타'];
+ var k = keys.find(function(k){ return v.includes(k); });
+ return k || v; // 매칭 안되면 원본값 사용 (예: "테스트")
+}
+function getMatLabel(v) {
+ if (!v || v === '미설정') return null;
+ var k = Object.keys(MAT_EMOJI).find(function(k){ return v.includes(k); });
+ return k || v; // 매칭 안되면 원본값 사용 (예: "꽃")
+}
+function getMatEmoji(label) {
+ return MAT_EMOJI[label] || '';
+}
+
 function showTip(e, names) {
  if (!names.length) return;
- tip.textContent = names.slice(0,10).map(function(n){return '· '+n;}).join('\n');
+ tip.textContent = names.slice(0,10).map(function(n){ return '· '+n; }).join('
+');
  tip.style.display = 'block';
  moveTip(e);
 }
@@ -63,15 +81,6 @@ function moveTip(e) {
 }
 function hideTip() { tip.style.display='none'; }
 
-var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
-
-function cleanLabel(v) {
- if (!v || v === '미설정') return null;
- return v.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{1F000}-\u{1F02F}]|\u{FE0F}/gu, '').trim();
-}
-function getCat(v) { return cleanLabel(v); }
-function getMat(v) { return cleanLabel(v); }
-
 async function load() {
  try {
   var res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
@@ -80,36 +89,44 @@ async function load() {
   var t = new Date(data.updatedAt);
   document.getElementById('updated').textContent = t.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 업데이트';
 
-  var activeCats = CAT_KEYS.filter(function(k){ return ideas.some(function(i){ return getCat(i.category)===k; }); });
-  var activeMats = MAT_ORDER.filter(function(k){ return ideas.some(function(i){ return getMat(i.maturity)===k; }); });
+  // 카테고리/성숙도 동적 추출
+  var catSet = {}, matSet = {};
+  ideas.forEach(function(i) {
+   var cl = getCatLabel(i.category);
+   if (cl) catSet[cl] = true;
+   var ml = getMatLabel(i.maturity);
+   if (ml) matSet[ml] = true;
+  });
+  var cats = Object.keys(catSet);
+  var mats = Object.keys(matSet);
 
-  if (!activeCats.length || !activeMats.length) {
+  if (!cats.length || !mats.length) {
    document.getElementById('hm').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">아이디어를 추가하면 히트맵이 나타나요</div>';
    return;
   }
 
   var maxVal = 1;
-  activeCats.forEach(function(ck) {
-   activeMats.forEach(function(mk) {
-    var c = ideas.filter(function(i){ return getCat(i.category)===ck && getMat(i.maturity)===mk; }).length;
+  cats.forEach(function(ck) {
+   mats.forEach(function(mk) {
+    var c = ideas.filter(function(i){ return getCatLabel(i.category)===ck && getMatLabel(i.maturity)===mk; }).length;
     if (c > maxVal) maxVal = c;
    });
   });
 
   var html = '<table><thead><tr><th class="row-header"></th>';
-  activeMats.forEach(function(mk){ html += '<th>'+(MAT_EMOJI[mk]||'')+' '+mk+'</th>'; });
+  mats.forEach(function(mk){ html += '<th>'+(getMatEmoji(mk)||'')+' '+mk+'</th>'; });
   html += '</tr></thead><tbody>';
 
-  activeCats.forEach(function(ck) {
+  cats.forEach(function(ck) {
    html += '<tr><td class="row-label" title="'+ck+'">'+ck+'</td>';
-   activeMats.forEach(function(mk) {
-    var matched = ideas.filter(function(i){ return getCat(i.category)===ck && getMat(i.maturity)===mk; });
+   mats.forEach(function(mk) {
+    var matched = ideas.filter(function(i){ return getCatLabel(i.category)===ck && getMatLabel(i.maturity)===mk; });
     matched.sort(function(a,b){ return new Date(b.createdAt||0)-new Date(a.createdAt||0); });
     var count = matched.length;
     var alpha = count===0 ? 0 : 0.15+(count/maxVal)*0.80;
     var bg = count===0 ? 'rgba(128,128,128,0.06)' : 'rgba(29,158,117,'+alpha.toFixed(2)+')';
     var color = alpha>0.55 ? '#fff' : (count>0 ? '#0a4433' : 'rgba(128,128,128,0.25)');
-    var names = matched.map(function(i){return i.name;}).join('||').replace(/"/g,'');
+    var names = matched.map(function(i){ return i.name; }).join('||').replace(/"/g,'');
     html += '<td style="background:'+bg+';color:'+color+';" data-names="'+names+'">'+(count||'')+'</td>';
    });
    html += '</tr>';
