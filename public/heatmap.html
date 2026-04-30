@@ -73,7 +73,7 @@ function getMat(v) { return MAT_ORDER.find(function(k){return v&&v.includes(k);}
 
 async function load() {
  try {
-  var res = await fetch('/.netlify/functions/notion-data');
+  var res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
   var data = await res.json();
   var ideas = data.ideas;
   var t = new Date(data.updatedAt);
