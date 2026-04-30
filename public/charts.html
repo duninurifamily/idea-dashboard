@@ -43,17 +43,12 @@
 <script>
 var CAT_COLORS = ['#378add','#1d9e75','#e24b4a','#ef9f27','#a78bfa','#f472b6','#94a3b8','#fb923c','#34d399','#f87171'];
 var MAT_COLORS = ['#1d9e75','#378add','#ef9f27','#e24b4a','#a78bfa','#f472b6','#94a3b8','#fb923c'];
-var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
 
-function getLabel(v, type) {
- if (type === 'cat') {
-  var keys = ['마케팅','운영','제품','고객','수익','기술','기타'];
-  var k = keys.find(function(k){ return v && v.includes(k); });
-  return k || v;
- } else {
-  var mk = Object.keys(MAT_EMOJI).find(function(k){ return v && v.includes(k); });
-  return mk || v;
- }
+// 이모지+텍스트 또는 순수 텍스트에서 핵심 레이블 추출
+function cleanLabel(v) {
+ if (!v || v === '미설정') return null;
+ // 이모지 제거 후 앞뒤 공백 제거
+ return v.replace(/[🌀-🿿]|[☀-⟿]|[🀀-🀯]|️/gu, '').trim();
 }
 
 var catInst = null, matInst = null;
@@ -69,8 +64,8 @@ async function load() {
   // 카테고리 동적 추출
   var catMap = {};
   ideas.forEach(function(i) {
-   if (!i.category) return;
-   var label = getLabel(i.category, 'cat');
+   var label = cleanLabel(i.category);
+   if (!label) return;
    catMap[label] = (catMap[label]||0)+1;
   });
   var catLabels = Object.keys(catMap);
@@ -79,13 +74,12 @@ async function load() {
   // 성숙도 동적 추출
   var matMap = {};
   ideas.forEach(function(i) {
-   if (!i.maturity || i.maturity === '미설정') return;
-   var label = getLabel(i.maturity, 'mat');
+   var label = cleanLabel(i.maturity);
+   if (!label) return;
    matMap[label] = (matMap[label]||0)+1;
   });
   var matLabels = Object.keys(matMap);
   var matCounts = matLabels.map(function(k){ return matMap[k]; });
-  var matEmojis = matLabels.map(function(l){ return (MAT_EMOJI[l]||'')+' '+l; });
 
   // 카테고리 차트
   if (catInst) catInst.destroy();
@@ -99,12 +93,12 @@ async function load() {
   if (matInst) matInst.destroy();
   matInst = new Chart(document.getElementById('matChart'), {
    type: 'doughnut',
-   data: { labels: matEmojis, datasets: [{ data: matCounts, backgroundColor: MAT_COLORS.slice(0, matLabels.length), borderWidth: 0, hoverOffset: 6 }] },
+   data: { labels: matLabels, datasets: [{ data: matCounts, backgroundColor: MAT_COLORS.slice(0, matLabels.length), borderWidth: 0, hoverOffset: 6 }] },
    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx){ return ' '+ctx.label+': '+ctx.raw+'개'; } } } } }
   });
 
   document.getElementById('matLegend').innerHTML = matLabels.map(function(l,i){
-   return '<span><span class="dot" style="background:'+MAT_COLORS[i]+'"></span>'+(MAT_EMOJI[l]||'')+' '+l+' '+matCounts[i]+'개</span>';
+   return '<span><span class="dot" style="background:'+MAT_COLORS[i]+'"></span>'+l+' '+matCounts[i]+'개</span>';
   }).join('');
 
  } catch(e) {
