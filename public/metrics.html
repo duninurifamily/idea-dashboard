@@ -32,13 +32,12 @@
 </div>
 <script>
 var MAT_EMOJI = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
-function getMatEmoji(m) {
- var key = Object.keys(MAT_EMOJI).find(function(k){ return m && m.includes(k); });
- return key ? MAT_EMOJI[key] : '';
+function cleanLabel(v) {
+ if (!v || v === '미설정') return null;
+ return v.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{1F000}-\u{1F02F}]|\u{FE0F}/gu, '').trim();
 }
-function getMatLabel(m) {
- var key = Object.keys(MAT_EMOJI).find(function(k){ return m && m.includes(k); });
- return key || m;
+function getMatEmoji(label) {
+ return MAT_EMOJI[label] || '';
 }
 
 async function load() {
@@ -56,7 +55,7 @@ async function load() {
   var matSet = {};
   ideas.forEach(function(i) {
    if (!i.maturity) return;
-   var label = getMatLabel(i.maturity);
+   var label = cleanLabel(i.maturity);
    if (!matSet[label]) matSet[label] = { emoji: getMatEmoji(i.maturity), count: 0 };
    matSet[label].count++;
   });
