@@ -140,11 +140,35 @@ async function load() {
   }
 }
 
+function getMatLabel(v) {
+  if (!v || v === '미설정') return null;
+  var keys = ['씨앗','싹','나무','꽃','열매'];
+  var k = keys.find(function(k){ return v.includes(k); });
+  return k || v;
+}
+function getMatEmoji(label) {
+  var map = {'씨앗':'🌱','싹':'🌿','나무':'🌳','꽃':'🌸','열매':'🍎'};
+  return map[label] || '';
+}
+function getCatLabel(v) {
+  if (!v) return null;
+  var keys = ['마케팅','운영','제품','고객','수익','기술','기타'];
+  var k = keys.find(function(k){ return v.includes(k); });
+  return k || v;
+}
+
 function renderMetrics(ideas) {
   document.getElementById('m-total').textContent = ideas.length;
-  document.getElementById('m-seed').textContent = ideas.filter(i => i.maturity.includes('씨앗')).length;
-  document.getElementById('m-sprout').textContent = ideas.filter(i => i.maturity.includes('싹')).length;
-  document.getElementById('m-tree').textContent = ideas.filter(i => i.maturity.includes('나무')).length;
+  // 성숙도 카드 동적 생성
+  var matMap = {};
+  ideas.forEach(function(i) {
+    var label = getMatLabel(i.maturity);
+    if (label) matMap[label] = (matMap[label]||0)+1;
+  });
+  // 기존 고정 카드 업데이트 (씨앗/싹/나무)
+  document.getElementById('m-seed').textContent = matMap['씨앗']||0;
+  document.getElementById('m-sprout').textContent = matMap['싹']||0;
+  document.getElementById('m-tree').textContent = matMap['나무']||0;
 }
 
 function renderCatChart(ideas) {
@@ -174,8 +198,15 @@ function renderPrioChart(ideas) {
 }
 
 function renderHeatmap(ideas) {
-  const activeCats = CATS.filter(c => ideas.some(i => i.category.includes(c.split('/')[0])));
-  if (activeCats.length === 0) { document.getElementById('heatmap-wrap').innerHTML = '<div class="empty">아이디어를 추가하면 히트맵이 나타나요</div>'; return; }
+  // 카테고리/성숙도 동적 추출
+  const catSet = {}, matSet = {};
+  ideas.forEach(i => {
+    const cl = getCatLabel(i.category); if (cl) catSet[cl] = true;
+    const ml = getMatLabel(i.maturity); if (ml) matSet[ml] = true;
+  });
+  const activeCats = Object.keys(catSet);
+  const MATS = Object.keys(matSet);
+  if (activeCats.length === 0 || MATS.length === 0) { document.getElementById('heatmap-wrap').innerHTML = '<div class="empty">아이디어를 추가하면 히트맵이 나타나요</div>'; return; }
   const maxVal = Math.max(...activeCats.flatMap(c => MATS.map(m => ideas.filter(i => i.category.includes(c.split('/')[0]) && i.maturity.includes(m)).length)), 1);
   let html = '<table class="hm-table"><thead><tr><th class="row-header"></th>';
   MATS.forEach(m => { html += `<th>${MAT_EMOJI[m]} ${m}</th>`; });
@@ -184,7 +215,7 @@ function renderHeatmap(ideas) {
     const shortName = cat.length > 7 ? cat.slice(0,7)+'…' : cat;
     html += `<tr><td class="row-label" title="${cat}">${shortName}</td>`;
     MATS.forEach(mat => {
-      const count = ideas.filter(i => i.category.includes(cat.split('/')[0]) && i.maturity.includes(mat)).length;
+      const count = ideas.filter(i => getCatLabel(i.category) === cat && getMatLabel(i.maturity) === mat).length;
       const intensity = count === 0 ? 0 : 0.15 + (count / maxVal) * 0.80;
       const bg = count === 0 ? 'rgba(128,128,128,0.06)' : `rgba(29,158,117,${intensity.toFixed(2)})`;
       const textColor = intensity > 0.55 ? '#fff' : (count > 0 ? '#0a4433' : 'rgba(128,128,128,0.3)');
