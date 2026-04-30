@@ -125,7 +125,7 @@ async function load() {
   document.getElementById('main').style.display = 'none';
   document.getElementById('error-area').innerHTML = '';
   try {
-    const res = await fetch('/.netlify/functions/notion-data');
+    const res = await fetch('https://notion-proxy.duninurifamily.workers.dev/');
     if (!res.ok) throw new Error(`API 오류 ${res.status}`);
     const { ideas, updatedAt } = await res.json();
     const t = new Date(updatedAt);
